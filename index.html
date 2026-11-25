@@ -41,11 +41,13 @@ button{padding:12px 16px;border:none;border-radius:20px;background:#1f6feb;color
 </style>
 </head>
 <body>
-<header>🤖 M&amp;L Assistant v15<span onclick="showSetup()" style="position:absolute;left:12px;top:14px;font-size:20px;cursor:pointer">⚙️</span><span onclick="showPanel()" style="position:absolute;left:44px;top:14px;font-size:20px;cursor:pointer">📦</span><span onclick="clearChat()" style="position:absolute;right:12px;top:14px;font-size:20px;cursor:pointer">🗑️</span></header>
+<header>🤖 M&amp;L Assistant v16<span onclick="showSetup()" style="position:absolute;left:12px;top:14px;font-size:20px;cursor:pointer">⚙️</span><span onclick="showPanel()" style="position:absolute;left:44px;top:14px;font-size:20px;cursor:pointer">📦</span><span onclick="clearChat()" style="position:absolute;right:12px;top:14px;font-size:20px;cursor:pointer">🗑️</span></header>
 <div id="setup">
 <div class="lbl">حط مفتاحك مرة واحدة بس. المفتاح بيتخزن على جهازك انت بس، ومبيتبعتش غير للخدمة نفسها عشان ترد عليك.</div>
 <input id="k_gemini" class="dir" placeholder="Gemini API Key">
 <input id="k_groq" class="dir" placeholder="Groq API Key (مجاني برضه)">
+<div class="lbl">توكن GitHub (مرة واحدة بس): بيخلي مكتبة المنتجات تتحدث على موقع البوت أوتوماتيك. بيتخزن على جهازك بس، ومبيتبعتش غير لـ GitHub نفسه.</div>
+<input id="k_ghtoken" class="dir" type="password" placeholder="github_pat_..." autocomplete="off">
 <label class="lbl" style="direction:rtl"><input type="checkbox" id="k_claude" style="direction:rtl"> فعّل كلود مجانًا عن طريق Puter (من غير مفتاح، بحد شهري، وهيسألك تسجل دخول أول مرة)</label>
 <label class="lbl" style="direction:rtl"><input type="checkbox" id="k_team" style="direction:rtl" onchange="teamToggle(this.checked)"> وضع الفريق 🤝 التلاتة بيشاركوا في الرد الواحد: واحد يكتب، واحد يراجع، واحد يطلّع النهائي. بيستهلك من الباقة المجانية أكتر، فعّله وقت ما تحتاج أحسن نتيجة.</label>
 <button onclick="saveKeys()">ابدأ 🚀</button>
@@ -63,6 +65,8 @@ button{padding:12px 16px;border:none;border-radius:20px;background:#1f6feb;color
 <input id="p_name" placeholder="اسم المنتج (مثال: خاتم فصوص روز)">
 <input id="p_price" placeholder="السعر بالجنيه (مثال: 150)" inputmode="numeric">
 <button onclick="saveProduct()">حفظ المنتج 💾</button>
+<button class="icobtn" onclick="syncCatalog()">🔄 حدّث كتالوج البوت دلوقتي</button>
+<div class="lbl" id="syncst"></div>
 <button class="icobtn" onclick="hidePanels()">رجوع للشات ⬅️</button>
 </div>
 <div id="chat"></div>
@@ -237,6 +241,8 @@ function saveKeys(){
   var v=document.getElementById('k_'+n).value.trim();
   if(v){storeSet('k_'+n,v);saved++;}
  });
+ var gt=document.getElementById('k_ghtoken').value.trim();
+ if(gt){storeSet('k_ghtoken',gt);saved++;document.getElementById('k_ghtoken').value='';}
  if(!saved){alert('حط مفتاح واحد على الأقل الأول 😊');return;}
  rebuild();
  hidePanels();
@@ -492,11 +498,13 @@ function saveProduct(){
  document.getElementById('p_name').value='';
  document.getElementById('p_price').value='';
  renderProducts();
+ syncCatalog();
 }
 function delProduct(id){
  if(!confirm('تمسح المنتج ده من المكتبة؟'))return;
  setProducts(getProducts().filter(function(p){return p.id!==id;}));
  renderProducts();
+ syncCatalog();
 }
 function useProduct(id){
  var p=null;
@@ -544,6 +552,62 @@ function renderProducts(){
   r.appendChild(del);
   el.appendChild(r);
  });
+}
+
+/* ===== مزامنة كتالوج البوت على GitHub ===== */
+var GH_OWNER='kimoelkot7-art',GH_REPO='ml-assistant',GH_BRANCH='main';
+var _syncing=false,_syncAgain=false;
+function ghToken(){return storeGet('k_ghtoken');}
+function syncStatus(msg){var el=document.getElementById('syncst');if(el)el.textContent=msg;}
+function b64utf8(s){return btoa(unescape(encodeURIComponent(s)));}
+async function ghApi(path,method,body){
+ var opt={method:method,headers:{Authorization:'Bearer '+ghToken(),Accept:'application/vnd.github+json'}};
+ if(body){opt.headers['Content-Type']='application/json';opt.body=JSON.stringify(body);}
+ var r=await fetch('https://api.github.com/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+path,opt);
+ if(r.status===404)return null;
+ if(!r.ok){var t=await r.text();throw {msg:method+' '+path+' '+r.status+' '+t.slice(0,80)};}
+ return r.json();
+}
+async function ghPut(path,contentB64,msg){
+ var cur=await ghApi(path+'?ref='+GH_BRANCH,'GET');
+ var body={message:msg,content:contentB64,branch:GH_BRANCH};
+ if(cur&&cur.sha)body.sha=cur.sha;
+ await ghApi(path,'PUT',body);
+}
+async function syncCatalog(){
+ if(_syncing){_syncAgain=true;return;}
+ if(!ghToken()){syncStatus('⚠️ ضيف توكن GitHub من ⚙️ الأول عشان كتالوج البوت يتحدث');return;}
+ _syncing=true;
+ syncStatus('⏳ بيتحدث كتالوج البوت...');
+ try{
+  var ps=getProducts();
+  var existing=await ghApi('bot/catalog?ref='+GH_BRANCH,'GET');
+ var have={};
+  if(Array.isArray(existing)){existing.forEach(function(f){if(f.type==='file')have['bot/catalog/'+f.name]=f.name;});}
+  var keep={};
+  for(var i=0;i<ps.length;i++){
+   var p=ps[i];
+   var path='bot/catalog/p'+p.id+'.jpg';
+   keep[path]=1;
+   if(!have[path]){await ghPut(path,p.img.split(',')[1],'catalog: add product image '+p.id);}
+  }
+  var names=Object.keys(have);
+  for(i=0;i<names.length;i++){
+   var fp=names[i];
+   if(!keep[fp]){
+    var cur=await ghApi(fp+'?ref='+GH_BRANCH,'GET');
+    if(cur&&cur.sha){await ghApi(fp,'DELETE',{message:'catalog: remove stale image',sha:cur.sha,branch:GH_BRANCH});}
+   }
+  }
+  var cat={products:ps.map(function(p){return {id:'p'+p.id,name:p.name,price:p.price,img:'catalog/p'+p.id+'.jpg'};})};
+  await ghPut('bot/catalog.json',b64utf8(JSON.stringify(cat)),'catalog: sync '+ps.length+' products');
+  syncStatus('✅ كتالوج البوت اتحدث ('+ps.length+' منتج)');
+ }catch(e){
+  syncStatus('❌ التحديث فشل ('+(e.msg||'مشكلة في النت')+') — التطبيق شغال عادي، جرب 🔄 تاني');
+ }finally{
+  _syncing=false;
+  if(_syncAgain){_syncAgain=false;syncCatalog();}
+ }
 }
 
 /* ===== استخراج السعر والصورة الجاهزة ===== */

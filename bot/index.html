@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M&amp;L | خدمة العملاء</title>
+<style>
+body{margin:0;font-family:'Segoe UI',Tahoma,sans-serif;background:#0d0f14;color:#f0ead9;display:flex;flex-direction:column;height:100vh}
+header{background:#161a22;padding:14px;text-align:center;border-bottom:1px solid #2a2f3a;position:relative}
+header .t{font-weight:bold;font-size:19px;color:#d9b45b}
+header .s{font-size:12px;color:#9aa3b2;margin-top:2px}
+header a{position:absolute;left:12px;top:15px;background:#1f6feb;color:#fff;text-decoration:none;padding:7px 12px;border-radius:14px;font-size:13px}
+#chat{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:88%;padding:10px 14px;border-radius:16px;line-height:1.7;white-space:pre-wrap;word-wrap:break-word}
+.me{align-self:flex-start;background:#1f6feb;color:#fff;border-bottom-right-radius:4px}
+.ai{align-self:flex-end;background:#1a1f29;border:1px solid #2a2f3a;border-bottom-left-radius:4px}
+.pcard{background:#12161e;border:1px solid #2a2f3a;border-radius:12px;padding:8px;margin-top:8px;text-align:center}
+.pcard img{max-width:100%;border-radius:8px;display:block}
+.pcard .pn{font-weight:bold;margin-top:6px;font-size:14px}
+.pcard .pp{color:#d9b45b;font-size:14px;margin-top:2px}
+#bar{display:flex;gap:6px;padding:10px;background:#161a22;border-top:1px solid #2a2f3a}
+#in{flex:1;padding:12px;border-radius:20px;border:1px solid #2a2f3a;background:#0d0f14;color:#f0ead9;font-size:16px;min-width:0}
+button{padding:12px 18px;border:none;border-radius:20px;background:#d9b45b;color:#141414;font-size:16px;font-weight:bold;cursor:pointer}
+</style>
+</head>
+<body>
+<header><div class="t">M&amp;L Accessories 💍</div><div class="s">المساعد الذكي لخدمة العملاء</div><a href="https://wa.me/201148434241" target="_blank" rel="noopener">📲 اطلب واتساب</a></header>
+<div id="chat"></div>
+<div id="bar">
+<input id="in" placeholder="اكتب سؤالك هنا..." onkeydown="if(event.key==='Enter')send()">
+<button onclick="send()">ابعت</button>
+</div>
+<script>
+var API_KEY=atob('QVEuQWI4Uk42S1c3aUd2dzdDdFZYektGR09OSHJVSFJ3YXk1ZVNsbk9aS21oQ1gybGJoY1E=');
+var MODEL='gemini-3.5-flash-lite';
+var ORDER_LINK='wa.me/201148434241';
+var chat=document.getElementById('chat');
+var CATALOG=[];
+var msgs=[];
+var SYSTEM='انت بوت خدمة العملاء الرسمي لبراند M&L للإكسسوارات (خواتم، سلاسل، أساور، طقوم كابلز وكومبوهات) في مصر. بترد على العملاء بالعامية المصرية البسيطة والمحترمة، بشخصية محمود صاحب البراند: ودود، مختصر، واثق من منتجه. ردودك قصيرة وعملية، وإيموجي واحد أو اتنين بس في الرد.\n\nحدودك واضحة: بتجاوب بس على حاجات تخص براند M&L والإكسسوارات (المنتجات، الخامات، الأسعار، المقاسات، الشحن، الدفع، الطلب). أي سؤال بره النطاق ده اعتذر بأدب وقول إنك مساعد براند M&L بس.\n\nمعلومات ثابتة متتغيرش:\n- الشحن متاح لكل المحافظات. ممنوع نهائيًا تذكر أو تخمن أي سعر للشحن: أي سؤال عن تكلفة الشحن حوّله لصاحب البراند على اللينك wa.me/201148434241.\n- الدفع: كاش عند الاستلام، انستاباي، أو أي محفظة إلكترونية.\n- لما العميل يقرر يشتري أو يسأل يطلب إزاي، ابعتله لينك الطلب على طول: wa.me/201148434241\n- الأسعار ثابتة زي ما هي معلنة. أي تفاوض أو طلب خصم: اعتذر بلطف وقول إن الأسعار نهائية، ولو حابب يكلم صاحب البراند: wa.me/201148434241\n- أي سؤال جوه نطاق البراند بس مش عارف إجابته بثقة، حوّله لنفس اللينك من غير ما تخمن.\n- ممنوع تخترع منتجات أو أسعار مش موجودة في الكتالوج.\n\nقواعد الخامات عشان تجاوب صح: القطع اللي فيها فصوص كتير غالبًا Gold Plated، والقطع السادة من غير فصوص Stainless Steel pure (ومش بتغير لونها)، والسلسلة اللي عليها دلاية اسمها Necklace drops.\n\nلما العميل يسأل عن التشكيلة أو منتج معين، اعرض المنتجات المناسبة من الكتالوج بأسمائها وأسعارها، ولما تذكر منتج من الكتالوج حط في آخر ردك سطر لوحده بالشكل ده [[صورة:ID]] بالآيدي بتاعه عشان صورته تظهر للعميل، وتقدر تحط أكتر من واحدة. لو الكتالوج فاضي، قول إن التشكيلة الجديدة جاية قريب جدًا وادعُه يكلم صاحب البراند على اللينك.';
+
+function add(text,cls){
+ var d=document.createElement('div');
+ d.className='msg '+cls;
+ var t=document.createElement('span');
+ t.textContent=text;
+ d.appendChild(t);
+ chat.appendChild(d);
+ chat.scrollTop=chat.scrollHeight;
+ return d;
+}
+function setMsg(d,text){
+ d.innerHTML='';
+ var t=document.createElement('span');
+ t.textContent=text;
+ d.appendChild(t);
+ chat.scrollTop=chat.scrollHeight;
+}
+function findProduct(id){
+ for(var i=0;i<CATALOG.length;i++){if(CATALOG[i].id===id)return CATALOG[i];}
+ return null;
+}
+function addCards(d,ids){
+ ids.forEach(function(id){
+  var p=findProduct(id);
+  if(!p)return;
+  var c=document.createElement('div');
+  c.className='pcard';
+  var im=document.createElement('img');
+  im.src=p.img;
+  im.alt=p.name;
+  im.loading='lazy';
+  var n=document.createElement('div');
+  n.className='pn';
+  n.textContent=p.name;
+  var pr=document.createElement('div');
+  pr.className='pp';
+  pr.textContent='السعر: '+p.price+' ج';
+  c.appendChild(im);
+  c.appendChild(n);
+  c.appendChild(pr);
+  d.appendChild(c);
+ });
+ chat.scrollTop=chat.scrollHeight;
+}
+async function loadCatalog(){
+ try{
+  var r=await fetch('./catalog.json');
+  if(!r.ok)return;
+  var j=await r.json();
+  if(j&&Array.isArray(j.products))CATALOG=j.products;
+ }catch(e){}
+}
+function catalogText(){
+ if(!CATALOG.length)return 'الكتالوج الحالي: فاضي (مفيش منتجات متسجلة لسه).';
+ var t='الكتالوج الحالي (آيدي - الاسم - السعر بالجنيه المصري):';
+ CATALOG.forEach(function(p){t+='\n'+p.id+' - '+p.name+' - '+p.price+' ج';});
+ return t;
+}
+async function gemini(){
+ var contents=msgs.map(function(m){
+  return {role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]};
+ });
+ var ctl=new AbortController();
+ var to=setTimeout(function(){ctl.abort();},25000);
+ var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+MODEL+':generateContent',{
+  method:'POST',
+  headers:{'Content-Type':'application/json','x-goog-api-key':API_KEY},
+  body:JSON.stringify({system_instruction:{parts:[{text:SYSTEM},{text:catalogText()}]},contents:contents}),
+  signal:ctl.signal});
+ clearTimeout(to);
+ if(!r.ok){throw {msg:r.status};}
+ var j=await r.json();
+ return j.candidates[0].content.parts.map(function(x){return x.text;}).join('');
+}
+var lastSend=0,sentCount=0;
+async function send(){
+ var inp=document.getElementById('in');
+ var q=inp.value.trim();
+ if(!q)return;
+ if(q.length>300){add('خلي رسالتك أقصر من ٣٠٠ حرف لو سمحت 🙏','ai');return;}
+ var now=Date.now();
+ if(now-lastSend<2500){add('ثانية واحدة كده وابعت تاني ⏳','ai');return;}
+ if(sentCount>=40){add('وصلت لحد الرسائل في الجلسة دي 🙏 كلمنا على واتساب وهنكمل معاك: '+ORDER_LINK,'ai');return;}
+ lastSend=now;
+ sentCount++;
+ inp.value='';
+ add(q,'me');
+ msgs.push({role:'user',content:q});
+ var w=add('⏳ ثانية...','ai');
+ try{
+  var a=await gemini();
+  msgs.push({role:'assistant',content:a});
+  var ids=[];
+  var text=a.replace(/\[\[صورة:([^\]\s]+)\]\]/g,function(m,id){ids.push(id);return '';}).trim();
+  setMsg(w,text);
+  if(ids.length)addCards(w,ids);
+ }catch(e){
+  setMsg(w,'😕 حصلت مشكلة تقنية بسيطة. جرب تاني بعد شوية، أو كلمنا واتساب على طول: '+ORDER_LINK);
+ }
+}
+loadCatalog();
+add('أهلًا بيك في M&L! 👋 أساعدك إزاي؟ تقدر تسألني عن التشكيلة والأسعار والشحن والدفع.','ai');
+</script>
+</body>
+</html>
