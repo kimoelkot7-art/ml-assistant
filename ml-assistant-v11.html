@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M&amp;L Assistant</title>
+<style>
+body{margin:0;font-family:'Segoe UI',Tahoma,sans-serif;background:#0d1117;color:#e6edf3;display:flex;flex-direction:column;height:100vh}
+header{background:#161b22;padding:14px;text-align:center;font-weight:bold;font-size:18px;border-bottom:1px solid #30363d;position:relative}
+#chat{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:8px}
+.msg{max-width:85%;padding:10px 14px;border-radius:16px;line-height:1.6;white-space:pre-wrap;word-wrap:break-word}
+.me{align-self:flex-start;background:#1f6feb;color:#fff;border-bottom-right-radius:4px}
+.ai{align-self:flex-end;background:#21262d;border:1px solid #30363d;border-bottom-left-radius:4px}
+.who{font-size:11px;color:#8b949e;margin-top:4px}
+#bar{display:flex;gap:8px;padding:10px;background:#161b22;border-top:1px solid #30363d}
+#in{flex:1;padding:12px;border-radius:20px;border:1px solid #30363d;background:#0d1117;color:#e6edf3;font-size:16px}
+button{padding:12px 18px;border:none;border-radius:20px;background:#1f6feb;color:#fff;font-size:16px;cursor:pointer}
+#setup{padding:20px;display:none;flex-direction:column;gap:12px}
+#setup input{padding:12px;border-radius:10px;border:1px solid #30363d;background:#0d1117;color:#e6edf3;font-size:14px;direction:ltr}
+.lbl{font-size:14px;color:#8b949e;line-height:1.7}
+</style>
+</head>
+<body>
+<header>🤖 M&amp;L Assistant v11<span onclick="showSetup()" style="position:absolute;left:12px;top:14px;font-size:20px;cursor:pointer">⚙️</span><span onclick="clearChat()" style="position:absolute;right:12px;top:14px;font-size:20px;cursor:pointer">🗑️</span></header>
+<div id="setup">
+<div class="lbl">حط مفتاحك مرة واحدة بس. المفتاح بيتخزن على جهازك انت بس، ومبيتبعتش غير للخدمة نفسها عشان ترد عليك.</div>
+<input id="k_gemini" placeholder="Gemini API Key">
+<input id="k_groq" placeholder="Groq API Key (مجاني برضه)">
+<input id="k_qwen" placeholder="Qwen API Key (اختياري)">
+<button onclick="saveKeys()">ابدأ 🚀</button>
+<button onclick="clearKeys()" style="background:#6e2424">مسح المفاتيح المحفوظة 🗑️</button>
+</div>
+<div id="chat"></div>
+<div id="bar">
+<input id="in" placeholder="اكتب رسالتك..." onkeydown="if(event.key==='Enter')send()">
+<button onclick="send()">ابعت</button>
+</div>
+<script>
+var chat=document.getElementById('chat');
+var SYSTEM_PROMPT='انت المساعد الشخصي لمحمود، صاحب براند M&L للإكسسوارات (خواتم، سلاسل، أساور، طقوم كابلز) بيبيع على فيسبوك وواتساب في مصر. بتتكلم معاه بالعامية المصرية زي صاحبه، وبتحترف تساعده في شغل البراند: كتابة بوستات بيع بالإيموجيز بأسلوبه المختصر، أفكار تسويق مجانية، ردود جاهزة على العملاء (الأسعار من ١٠٠ لـ ٣٥٠ جنيه، شحن لكل المحافظات، دفع كاش عند الاستلام، لينك الطلب wa.me/201148434241)، وترجمة إنجليزي لما يطلب، وأفكار أتمتة وتعلم AI. خلي ردودك مختصرة وعملية، ولو بكتب بوست خليه جاهز للنسخ واللصق على طول.';
+
+var MEMK={};
+function storeSet(k,v){
+ try{localStorage.setItem(k,v);if(localStorage.getItem(k)===v)return;}catch(e){}
+ MEMK[k]=v;
+}
+function storeGet(k){
+ try{var v=localStorage.getItem(k);if(v)return v;}catch(e){}
+ return MEMK[k]||null;
+}
+function saveMsgs(){try{storeSet('k_msgs',JSON.stringify(msgs));}catch(e){}}
+function loadMsgs(){
+ try{
+  var raw=storeGet('k_msgs');
+  if(!raw)return;
+  var arr=JSON.parse(raw);
+  if(!Array.isArray(arr))return;
+  msgs=arr;
+  msgs.forEach(function(m){add(m.content,m.role==='user'?'me':'ai');});
+ }catch(e){}
+}
+function storeClear(){
+ storeSet('k_msgs','');
+ ['k_gemini','k_groq','k_qwen'].forEach(function(k){
+  try{localStorage.removeItem(k);}catch(e){}
+  delete MEMK[k];
+ });
+}
+var msgs=[];
+function geminiProvider(model){
+ return {
+  name: model.indexOf('lite')>-1 ? 'Gemini Lite' : 'Gemini',
+  key: storeGet('k_gemini'),
+  call: async function(){
+   var contents=msgs.map(function(m){return {role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]};});
+   var ctl=new AbortController();
+   var to=setTimeout(function(){ctl.abort();},25000);
+   var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-goog-api-key':this.key},
+    body:JSON.stringify({system_instruction:{parts:[{text:SYSTEM_PROMPT}]},contents:contents}),
+    signal:ctl.signal});
+   clearTimeout(to);
+   if(!r.ok){var t=await r.text();throw {msg:r.status+' '+t.slice(0,200)};}
+   var j=await r.json();
+   return j.candidates[0].content.parts.map(function(x){return x.text;}).join('');
+  }
+ };
+}
+function openaiProvider(name,url,model,key){
+ return {
+  name:name,key:key,
+  call: async function(){
+   var ctl=new AbortController();
+   var to=setTimeout(function(){ctl.abort();},25000);
+   var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+this.key},body:JSON.stringify({model:model,messages:[{role:'system',content:SYSTEM_PROMPT}].concat(msgs)}),signal:ctl.signal});
+   clearTimeout(to);
+   if(!r.ok){var t=await r.text();throw {msg:r.status+' '+t.slice(0,200)};}
+   var j=await r.json();
+   return j.choices[0].message.content;
+  }
+ };
+}
+var P=[];
+function rebuild(){
+ P=[
+  geminiProvider('gemini-3.8-flash'),
+  geminiProvider('gemini-3.5-flash-lite'),
+  openaiProvider('Groq','https://api.groq.com/openai/v1/chat/completions','openai/gpt-oss-120b',storeGet('k_groq')),
+  openaiProvider('Qwen','https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions','qwen-plus',storeGet('k_qwen'))
+ ].filter(function(p){return p.key;});
+}
+function geminiKey(){return storeGet('k_gemini');}
+function showSetup(){document.getElementById('setup').style.display='flex';chat.style.display='none';}
+function clearKeys(){storeClear();rebuild();alert('اتمسحت ✅');location.reload();}
+function saveKeys(){
+ var saved=0;
+ ['gemini','groq','qwen'].forEach(function(n){
+  var v=document.getElementById('k_'+n).value.trim();
+  if(v){storeSet('k_'+n,v);saved++;}
+ });
+ if(!saved){alert('حط مفتاح واحد على الأقل الأول 😊');return;}
+ rebuild();
+ document.getElementById('setup').style.display='none';
+ chat.style.display='flex';
+ var note='✅ اتسجل!';
+ if(!localStorage.getItem('k_gemini')&&!localStorage.getItem('k_groq')&&!localStorage.getItem('k_qwen')){
+  note='✅ اتسجل للجلسة دي. ملحوظة: موبايلك مش بيحفظ المفاتيح بعد قفل الصفحة، فلو قفلتها هتحط المفتاح تاني بس.';
+ }
+ add(note,'ai');
+}
+rebuild();
+loadMsgs();
+if(!P.length){showSetup();}
+function add(text,cls,who){
+ var d=document.createElement('div');
+ d.className='msg '+cls;
+ var t=document.createElement('span');
+ t.textContent=text;
+ d.appendChild(t);
+ if(who){
+  var s=document.createElement('div');
+  s.className='who';
+  s.textContent=who;
+  d.appendChild(s);
+ }
+ chat.appendChild(d);
+ chat.scrollTop=chat.scrollHeight;
+ return d;
+}
+function setMsg(d,text,who){
+ d.textContent=text;
+ if(who){
+  var s=document.createElement('div');
+  s.className='who';
+  s.textContent=who;
+  d.appendChild(s);
+ }
+ chat.scrollTop=chat.scrollHeight;
+}
+async function ask(){
+ var errs=[];
+ for(var i=0;i<P.length;i++){
+  var p=P[i];
+  try{
+   var a=await p.call();
+   msgs.push({role:'assistant',content:a});
+   saveMsgs();
+   return[p.name,a];
+  }catch(e){
+   errs.push(p.name+': '+(e.name==='AbortError'?'انتهت المهلة (الشبكة بطيئة أو محجوبة)':(e.msg||e.message||'خطأ غير معروف')));
+  }
+ }
+ return[null,'❌ كل الخدمات فشلت. ابعتلي سكرين شوت من الرسالة دي:\n'+errs.join('\n')];
+}
+function clearChat(){if(!confirm('تمسح المحادثة كلها؟'))return;msgs=[];storeSet('k_msgs','');chat.innerHTML='';}
+async function send(){
+ var inp=document.getElementById('in');
+ var q=inp.value.trim();
+ if(!q)return;
+ inp.value='';
+ add(q,'me');
+ msgs.push({role:'user',content:q});
+ saveMsgs();
+ var w=add('⏳ بيفكر...','ai');
+ var res=await ask();
+ setMsg(w,res[1],res[0]);
+}
+</script>
+</body>
+</html>
