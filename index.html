@@ -21,12 +21,12 @@ button{padding:12px 18px;border:none;border-radius:20px;background:#1f6feb;color
 </style>
 </head>
 <body>
-<header>🤖 M&amp;L Assistant v11<span onclick="showSetup()" style="position:absolute;left:12px;top:14px;font-size:20px;cursor:pointer">⚙️</span><span onclick="clearChat()" style="position:absolute;right:12px;top:14px;font-size:20px;cursor:pointer">🗑️</span></header>
+<header>🤖 M&amp;L Assistant v13<span onclick="showSetup()" style="position:absolute;left:12px;top:14px;font-size:20px;cursor:pointer">⚙️</span><span onclick="clearChat()" style="position:absolute;right:12px;top:14px;font-size:20px;cursor:pointer">🗑️</span></header>
 <div id="setup">
-<div class="lbl">حط مفتاحك مرة واحدة بس. المفتاح بيتخزن على جهازك انت بس، ومبيتبعتش غير للخدمة نفسها عشان ترد عليك.</div>
+<div class="lbl">حط مفتاحك مرة واحدة بس. المفتاح بيتخزن على جهازك انت بس، ومبيتبعتش غير للخدمة نفسها عشان ترد عليك. المفتاح بيتخزن على جهازك انت بس، ومبيتبعتش غير للخدمة نفسها عشان ترد عليك.</div>
 <input id="k_gemini" placeholder="Gemini API Key">
 <input id="k_groq" placeholder="Groq API Key (مجاني برضه)">
-<input id="k_qwen" placeholder="Qwen API Key (اختياري)">
+<label class="lbl" style="direction:rtl"><input type="checkbox" id="k_claude" style="direction:rtl"> فعّل كلود مجانًا عن طريق Puter (من غير مفتاح، بحد شهري، وهيسألك تسجل دخول أول مرة)</label>
 <button onclick="saveKeys()">ابدأ 🚀</button>
 <button onclick="clearKeys()" style="background:#6e2424">مسح المفاتيح المحفوظة 🗑️</button>
 </div>
@@ -61,7 +61,7 @@ function loadMsgs(){
 }
 function storeClear(){
  storeSet('k_msgs','');
- ['k_gemini','k_groq','k_qwen'].forEach(function(k){
+ ['k_gemini','k_groq','k_qwen','k_claude'].forEach(function(k){
   try{localStorage.removeItem(k);}catch(e){}
   delete MEMK[k];
  });
@@ -101,21 +101,52 @@ function openaiProvider(name,url,model,key){
   }
  };
 }
+
+var _puterLoading=null;
+function loadPuter(){
+ if(window.puter&&puter.ai)return Promise.resolve();
+ if(_puterLoading)return _puterLoading;
+ _puterLoading=new Promise(function(res,rej){
+  var s=document.createElement('script');
+  s.src='https://js.puter.com/v2/';
+  s.onload=function(){res();};
+  s.onerror=function(){rej({msg:'مكتبة Puter محملتش، اتأكد من النت'});};
+  document.head.appendChild(s);
+ });
+ return _puterLoading;
+}
+function puterProvider(label,model){
+ return {
+  name:label,key:'puter',
+  call: async function(){
+   await loadPuter();
+   if(!puter.auth.isSignedIn()){try{await puter.auth.signIn();}catch(e){throw {msg:'كلود محتاج تسجيل دخول Puter (مجاني)'}}}
+   var r=await puter.ai.chat([{role:'system',content:SYSTEM_PROMPT}].concat(msgs),{model:model});
+   var c=r&&r.message&&r.message.content;
+   if(typeof c==='string')return c;
+   if(c&&c.length&&c[0].text)return c.map(function(x){return x.text||'';}).join('');
+   if(r&&r.text)return r.text;
+   return String(r);
+  }
+ };
+}
 var P=[];
 function rebuild(){
  P=[
   geminiProvider('gemini-3.8-flash'),
   geminiProvider('gemini-3.5-flash-lite'),
-  openaiProvider('Groq','https://api.groq.com/openai/v1/chat/completions','openai/gpt-oss-120b',storeGet('k_groq')),
-  openaiProvider('Qwen','https://dashscope-intl.aliyuncs.com/compatible-mode/v1/chat/completions','qwen-plus',storeGet('k_qwen'))
- ].filter(function(p){return p.key;});
+  storeGet('k_claude')?puterProvider('Claude Sonnet','claude-sonnet-5-5'):null,
+  storeGet('k_claude')?puterProvider('Claude Haiku','claude-haiku-5-5'):null,
+  openaiProvider('Groq','https://api.groq.com/openai/v1/chat/completions','openai/gpt-oss-120b',storeGet('k_groq'))
+ ].filter(function(p){return p&&p.key;});
 }
 function geminiKey(){return storeGet('k_gemini');}
 function showSetup(){document.getElementById('setup').style.display='flex';chat.style.display='none';}
 function clearKeys(){storeClear();rebuild();alert('اتمسحت ✅');location.reload();}
 function saveKeys(){
  var saved=0;
- ['gemini','groq','qwen'].forEach(function(n){
+ if(document.getElementById('k_claude').checked){storeSet('k_claude','1');saved++;}
+ ['gemini','groq'].forEach(function(n){
   var v=document.getElementById('k_'+n).value.trim();
   if(v){storeSet('k_'+n,v);saved++;}
  });
@@ -124,7 +155,7 @@ function saveKeys(){
  document.getElementById('setup').style.display='none';
  chat.style.display='flex';
  var note='✅ اتسجل!';
- if(!localStorage.getItem('k_gemini')&&!localStorage.getItem('k_groq')&&!localStorage.getItem('k_qwen')){
+ if(!localStorage.getItem('k_gemini')&&!localStorage.getItem('k_groq')){
   note='✅ اتسجل للجلسة دي. ملحوظة: موبايلك مش بيحفظ المفاتيح بعد قفل الصفحة، فلو قفلتها هتحط المفتاح تاني بس.';
  }
  add(note,'ai');
