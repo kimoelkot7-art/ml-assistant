@@ -23,23 +23,50 @@ button{padding:12px 16px;border:none;border-radius:20px;background:#1f6feb;color
 .icobtn{padding:12px 12px;background:#21262d;border:1px solid #30363d}
 .rec{background:#b3261e !important;animation:pu 1s infinite}
 @keyframes pu{50%{opacity:.55}}
-#setup{padding:20px;display:none;flex-direction:column;gap:12px}
-#setup input{padding:12px;border-radius:10px;border:1px solid #30363d;background:#0d1117;color:#e6edf3;font-size:14px;direction:ltr}
+#setup,#panel{padding:20px;display:none;flex-direction:column;gap:12px;overflow-y:auto}
+#setup input,#panel input{padding:12px;border-radius:10px;border:1px solid #30363d;background:#0d1117;color:#e6edf3;font-size:14px}
+#setup input::placeholder,#panel input::placeholder{text-align:right}
+#setup input.dir,#panel input.dir{direction:ltr}
+#setup input.dir::placeholder{direction:rtl;text-align:right}
 .lbl{font-size:14px;color:#8b949e;line-height:1.7}
+.prow{display:flex;align-items:center;gap:10px;background:#21262d;border:1px solid #30363d;border-radius:12px;padding:8px}
+.prow button{padding:8px 10px;font-size:15px}
+.pimg{width:52px;height:52px;object-fit:cover;border-radius:8px}
+.pname{flex:1;font-size:14px;line-height:1.5}
+#pthumb{display:none;height:52px;border-radius:8px}
+.editbtn{padding:4px 10px;font-size:13px;margin-top:8px}
+.editarea{width:100%;min-height:160px;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:10px;padding:8px;font-size:14px;font-family:inherit;line-height:1.6}
+.editrow{display:flex;gap:6px;margin-top:6px}
+.editrow button{padding:8px 12px;font-size:14px}
 </style>
 </head>
 <body>
-<header>🤖 M&amp;L Assistant v14<span onclick="showSetup()" style="position:absolute;left:12px;top:14px;font-size:20px;cursor:pointer">⚙️</span><span onclick="clearChat()" style="position:absolute;right:12px;top:14px;font-size:20px;cursor:pointer">🗑️</span></header>
+<header>🤖 M&amp;L Assistant v15<span onclick="showSetup()" style="position:absolute;left:12px;top:14px;font-size:20px;cursor:pointer">⚙️</span><span onclick="showPanel()" style="position:absolute;left:44px;top:14px;font-size:20px;cursor:pointer">📦</span><span onclick="clearChat()" style="position:absolute;right:12px;top:14px;font-size:20px;cursor:pointer">🗑️</span></header>
 <div id="setup">
 <div class="lbl">حط مفتاحك مرة واحدة بس. المفتاح بيتخزن على جهازك انت بس، ومبيتبعتش غير للخدمة نفسها عشان ترد عليك.</div>
-<input id="k_gemini" placeholder="Gemini API Key">
-<input id="k_groq" placeholder="Groq API Key (مجاني برضه)">
+<input id="k_gemini" class="dir" placeholder="Gemini API Key">
+<input id="k_groq" class="dir" placeholder="Groq API Key (مجاني برضه)">
 <label class="lbl" style="direction:rtl"><input type="checkbox" id="k_claude" style="direction:rtl"> فعّل كلود مجانًا عن طريق Puter (من غير مفتاح، بحد شهري، وهيسألك تسجل دخول أول مرة)</label>
+<label class="lbl" style="direction:rtl"><input type="checkbox" id="k_team" style="direction:rtl" onchange="teamToggle(this.checked)"> وضع الفريق 🤝 التلاتة بيشاركوا في الرد الواحد: واحد يكتب، واحد يراجع، واحد يطلّع النهائي. بيستهلك من الباقة المجانية أكتر، فعّله وقت ما تحتاج أحسن نتيجة.</label>
 <button onclick="saveKeys()">ابدأ 🚀</button>
 <button onclick="clearKeys()" style="background:#6e2424">مسح المفاتيح المحفوظة 🗑️</button>
+<button class="icobtn" onclick="hidePanels()">رجوع للشات ⬅️</button>
+</div>
+<div id="panel">
+<div class="lbl">📦 مكتبة المنتجات: احفظ منتجاتك هنا (صورة + اسم + سعر)، ودوس ✨ جنب أي منتج يتجهز للبوست على طول. المنتجات بتتخزن على جهازك بس.</div>
+<div id="plist"></div>
+<div class="lbl" style="color:#e6edf3;font-weight:bold">➕ إضافة منتج جديد</div>
+<div style="display:flex;align-items:center;gap:10px">
+<img id="pthumb" alt="">
+<button class="icobtn" onclick="pickProdImg()">📷 صورة المنتج</button>
+</div>
+<input id="p_name" placeholder="اسم المنتج (مثال: خاتم فصوص روز)">
+<input id="p_price" placeholder="السعر بالجنيه (مثال: 150)" inputmode="numeric">
+<button onclick="saveProduct()">حفظ المنتج 💾</button>
+<button class="icobtn" onclick="hidePanels()">رجوع للشات ⬅️</button>
 </div>
 <div id="chat"></div>
-<div id="pvbar"><img id="pvimg" alt=""><span style="font-size:13px;color:#8b949e">الصورة جاهزة، اكتب السعر وابعت 📸</span><span id="pvx" onclick="clearPreview()">✕</span></div>
+<div id="pvbar"><img id="pvimg" alt=""><span style="font-size:13px;color:#8b949e">الصورة جاهزة، اتأكد من السعر وابعت 📸</span><span id="pvx" onclick="clearPreview()">✕</span></div>
 <div id="bar">
 <button class="icobtn" onclick="pickImg()" title="ابعت صورة منتج">📎</button>
 <button class="icobtn" id="mic" onclick="toggleMic()" title="اتكلم بدل ما تكتب">🎤</button>
@@ -47,9 +74,10 @@ button{padding:12px 16px;border:none;border-radius:20px;background:#1f6feb;color
 <button onclick="send()">ابعت</button>
 </div>
 <input type="file" id="filein" accept="image/*" style="display:none" onchange="onImg(event)">
+<input type="file" id="pfile" accept="image/*" style="display:none" onchange="onProdImg(event)">
 <script>
 var chat=document.getElementById('chat');
-var SYSTEM_PROMPT='انت المساعد الشخصي لمحمود، صاحب براند M&L للإكسسوارات (خواتم، سلاسل، أساور، طقوم كابلز) بيبيع على فيسبوك وواتساب في مصر. بتتكلم معاه بالعامية المصرية زي صاحبه، وبتساعده في شغل البراند: بوستات بيع جاهزة للنسخ واللصق، أفكار تسويق مجانية، ردود على العملاء (الأسعار من ١٠٠ لـ ٣٥٠ جنيه، شحن لكل المحافظات، دفع كاش عند الاستلام، لينك الطلب wa.me/201148434241)، ترجمة إنجليزي لما يطلب، وأفكار أتمتة وAI. خلي ردودك مختصرة وعملية.\n\nولما محمود يبعتلك صورة منتج، اكتب بوستين جاهزين للنسخ: الأول بوست فيسبوك، وبعده خط فاصل واضح زي "===== واتساب ====="، وبعده بوست واتساب.\n\nبوست الفيسبوك (شيك ومحترم جدًا ويلفت العين، بالترتيب ده بالظبط):\n١) سطر هوك شيك يشد العين مع إيموجي.\n٢) تفاصيل القطعة اللي تبيعها من اللي باين في الصورة (مثلًا "ضد تغيير اللون")، ولو كومبو اذكر قطعه.\n٣) سطر الخامة لوحده بالصيغة دي بالظبط: "Stainless Steel pure" أو "Gold Plated"، ولو كومبو مخلوط سطر خامة لكل قطعة.\n٤) سطر السعر بالصيغة دي: "السعر: ١٥٠ ج بس 💸" أو للكومبو "سعر الكومبو بالكامل: ٢٥٠ ج بس 💸" وبعدها "عروض وايت فرايداي ⏰🔥".\n٥) سطر الطلب باللينك wa.me/201148434241.\n\nبوست الواتساب (قصير ٣-٤ سطور بالإيموجيز بأسلوب محمود نفسه):\n١) هوك فيه اسم القطعة وحماس زي "موووت 😍✨".\n٢) سطر الخامة بالصيغ دي بالظبط: "Gold Plated (جولد بليتد) ✨" أو "Stainless Steel pure 🔥🔥💫" أو "Necklace drops 🔥🔥💫".\n٣) سطر السعر زي "السعر ١٥٠ فقط عروض جمعه 🔥💸⏰" أو للكومبو "سعر الكومبو بالكامل ٢٢٥ بس عروض الجمعة 🔥💸⏰".\n\nقواعد الخامة: القطعة اللي فيها فصوص كتير غالبًا Gold Plated. السادة من غير فصوص Stainless Steel pure مهما كان لونها. السلسلة اللي عليها دلاية اسمها "Necklace drops". الخواتم Gold Plated. ولو مش متأكد من الخامة اسأله ومتخمنش.\n\nولو محمود بعتلك مسودة بوست من كتابته هو، حسّنها بس خلي صوته وسطوره زي ما هي.\nولو مكتبش السعر مع الصورة، اسأله عن السعر في سطر واحد ومتكتبش البوستين، وماتخترعش سعر من عندك أبدًا.';
+var SYSTEM_PROMPT='انت المساعد الشخصي لمحمود، صاحب براند M&L للإكسسوارات (خواتم، سلاسل، أساور، طقوم كابلز) بيبيع على فيسبوك وواتساب في مصر. بتتكلم معاه بالعامية المصرية زي صاحبه، وبتساعده في شغل البراند: بوستات بيع جاهزة للنسخ واللصق، أفكار تسويق مجانية، ردود على العملاء (الأسعار من ١٠٠ لـ ٣٥٠ جنيه، شحن لكل المحافظات، دفع كاش عند الاستلام، لينك الطلب wa.me/201148434241)، ترجمة إنجليزي لما يطلب، وأفكار أتمتة وAI. خلي ردودك مختصرة وعملية.\n\nولما محمود يبعتلك صورة منتج، اكتب بوستين جاهزين للنسخ: الأول بوست فيسبوك، وبعده خط فاصل واضح زي "===== واتساب ====="، وبعده بوست واتساب.\n\nبوست الفيسبوك (شيك ومحترم جدًا ويلفت العين، بالترتيب ده بالظبط):\n١) سطر هوك شيك يشد العين مع إيموجي.\n٢) تفاصيل القطعة اللي تبيعها من اللي باين في الصورة (مثلًا "ضد تغيير اللون")، ولو كومبو اذكر قطعه.\n٣) سطر الخامة لوحده بالصيغة دي بالظبط: "Stainless Steel pure" أو "Gold Plated"، ولو كومبو مخلوط سطر خامة لكل قطعة.\n٤) سطر السعر بالصيغة دي: "السعر: ١٥٠ ج بس 💸" أو للكومبو "سعر الكومبو بالكامل: ٢٥٠ ج بس 💸" وبعدها "عروض وايت فرايداي ⏰🔥".\n٥) سطر الطلب باللينك wa.me/201148434241.\n\nبوست الواتساب (قصير ٣-٤ سطور بالإيموجيز بأسلوب محمود نفسه):\n١) هوك فيه اسم القطعة وحماس زي "موووت 😍✨".\n٢) سطر الخامة بالصيغ دي بالظبط: "Gold Plated (جولد بليتد) ✨" أو "Stainless Steel pure 🔥🔥💫" أو "Necklace drops 🔥🔥💫".\n٣) سطر السعر زي "السعر ١٥٠ فقط عروض جمعه 🔥💸⏰" أو للكومبو "سعر الكومبو بالكامل ٢٢٥ بس عروض الجمعة 🔥💸⏰".\n\nقواعد الخامة: القطعة اللي فيها فصوص كتير غالبًا Gold Plated. السادة من غير فصوص Stainless Steel pure مهما كان لونها. السلسلة اللي عليها دلاية اسمها "Necklace drops". الخواتم Gold Plated. ولو مش متأكد من الخامة اسأله ومتخمنش.\n\nومع كل بوست لمنتج، ضيف في الآخر قسمين كمان: "===== هاشتاجات =====" وفيه سطر هاشتاجات جاهزة للنسخ (عربي وإنجليزي، فيها #ML واسم القطعة وكلمات زي #اكسسوارات #خواتم #WhiteFriday)، و"===== ستوري =====" وفيه كابشن ستوري قصير سطر أو سطرين حماسي مع السعر ولينك الطلب.\n\nولو محمود بعتلك مسودة بوست من كتابته هو، حسّنها بس خلي صوته وسطوره زي ما هي.\nولو مكتبش السعر مع الصورة، اسأله عن السعر في سطر واحد ومتكتبش البوستين، وماتخترعش سعر من عندك أبدًا.';
 
 var MEMK={};
 function storeSet(k,v){
@@ -79,15 +107,36 @@ function storeClear(){
  });
 }
 var msgs=[];
+function getEdits(){
+ try{var a=JSON.parse(storeGet('k_edits')||'[]');return Array.isArray(a)?a:[];}catch(e){return[];}
+}
+function pushEdit(b,a){
+ var ed=getEdits();
+ ed.push({b:String(b).slice(0,600),a:String(a).slice(0,600)});
+ if(ed.length>10)ed=ed.slice(-10);
+ storeSet('k_edits',JSON.stringify(ed));
+}
+function sysPrompt(){
+ var p=SYSTEM_PROMPT;
+ var ed=getEdits();
+ if(ed.length){
+  p+='\n\nدي أمثلة حقيقية لتعديلات محمود بإيده على بوستات اتكتبتله قبل كده. أسلوب "بعد" هو ذوقه بالظبط، التزم بيه في أي بوست جديد:';
+  ed.slice(-5).forEach(function(e){
+   p+='\nقبل: '+e.b.slice(0,350)+'\nبعد: '+e.a.slice(0,350)+'\n---';
+  });
+ }
+ return p;
+}
 function geminiProvider(model){
  return {
   name: model.indexOf('lite')>-1 ? 'Gemini Lite' : 'Gemini',
   key: storeGet('k_gemini'),
   vision: true,
-  call: async function(img){
-   var contents=msgs.map(function(m,i){
+  call: async function(img,om){
+   var src=om||msgs;
+   var contents=src.map(function(m,i){
     var parts=[{text:m.content||' '}];
-    if(img&&i===msgs.length-1&&m.role==='user'){parts.push({inline_data:{mime_type:img.mime,data:img.b64}});}
+    if(img&&i===src.length-1&&m.role==='user'){parts.push({inline_data:{mime_type:img.mime,data:img.b64}});}
     return {role:m.role==='assistant'?'model':'user',parts:parts};
    });
    var ctl=new AbortController();
@@ -95,7 +144,7 @@ function geminiProvider(model){
    var r=await fetch('https://generativelanguage.googleapis.com/v1beta/models/'+model+':generateContent',{
     method:'POST',
     headers:{'Content-Type':'application/json','x-goog-api-key':this.key},
-    body:JSON.stringify({system_instruction:{parts:[{text:SYSTEM_PROMPT}]},contents:contents}),
+    body:JSON.stringify({system_instruction:{parts:[{text:sysPrompt()}]},contents:contents}),
     signal:ctl.signal});
    clearTimeout(to);
    if(!r.ok){var t=await r.text();throw {msg:r.status+' '+t.slice(0,200)};}
@@ -107,11 +156,11 @@ function geminiProvider(model){
 function openaiProvider(name,url,model,key){
  return {
   name:name,key:key,vision:false,
-  call: async function(img){
+  call: async function(img,om){
    if(img){throw {msg:'مش بيقرا صور'};}
    var ctl=new AbortController();
    var to=setTimeout(function(){ctl.abort();},25000);
-   var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+this.key},body:JSON.stringify({model:model,messages:[{role:'system',content:SYSTEM_PROMPT}].concat(msgs)}),signal:ctl.signal});
+   var r=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+this.key},body:JSON.stringify({model:model,messages:[{role:'system',content:sysPrompt()}].concat(om||msgs)}),signal:ctl.signal});
    clearTimeout(to);
    if(!r.ok){var t=await r.text();throw {msg:r.status+' '+t.slice(0,200)};}
    var j=await r.json();
@@ -136,16 +185,18 @@ function loadPuter(){
 function puterProvider(label,model){
  return {
   name:label,key:'puter',vision:true,
-  call: async function(img){
+  call: async function(img,om){
    await loadPuter();
    if(!puter.auth.isSignedIn()){try{await puter.auth.signIn();}catch(e){throw {msg:'كلود محتاج تسجيل دخول Puter (مجاني)'}}}
    var r;
    if(img){
-    var hist=msgs.slice(-12).map(function(m){return (m.role==='user'?'محمود: ':'انت: ')+m.content;}).join('\n');
-    var prompt=SYSTEM_PROMPT+'\n\nالمحادثة لحد دلوقتي:\n'+hist+'\n\nرد على آخر رسالة من محمود (معاها صورة مرفوعة).';
+    if(!img.file){throw {msg:'مش قادر يقرا الصورة'};}
+    var src=om||msgs;
+    var hist=src.slice(-12).map(function(m){return (m.role==='user'?'محمود: ':'انت: ')+m.content;}).join('\n');
+    var prompt=sysPrompt()+'\n\nالمحادثة لحد دلوقتي:\n'+hist+'\n\nرد على آخر رسالة من محمود (معاها صورة مرفوعة).';
     r=await puter.ai.chat(prompt,img.file,{model:model,vision:true});
    }else{
-    r=await puter.ai.chat([{role:'system',content:SYSTEM_PROMPT}].concat(msgs),{model:model});
+    r=await puter.ai.chat([{role:'system',content:sysPrompt()}].concat(om||msgs),{model:model});
    }
    var c=r&&r.message&&r.message.content;
    if(typeof c==='string')return c;
@@ -165,7 +216,19 @@ function rebuild(){
   openaiProvider('Groq','https://api.groq.com/openai/v1/chat/completions','openai/gpt-oss-120b',storeGet('k_groq'))
  ].filter(function(p){return p&&p.key;});
 }
-function showSetup(){document.getElementById('setup').style.display='flex';chat.style.display='none';}
+function teamOn(){return !!storeGet('k_team');}
+function teamToggle(on){storeSet('k_team',on?'1':'');}
+function showSetup(){
+ document.getElementById('k_team').checked=teamOn();
+ document.getElementById('setup').style.display='flex';
+ document.getElementById('panel').style.display='none';
+ chat.style.display='none';
+}
+function hidePanels(){
+ document.getElementById('setup').style.display='none';
+ document.getElementById('panel').style.display='none';
+ chat.style.display='flex';
+}
 function clearKeys(){storeClear();rebuild();alert('اتمسحت ✅');location.reload();}
 function saveKeys(){
  var saved=0;
@@ -176,8 +239,7 @@ function saveKeys(){
  });
  if(!saved){alert('حط مفتاح واحد على الأقل الأول 😊');return;}
  rebuild();
- document.getElementById('setup').style.display='none';
- chat.style.display='flex';
+ hidePanels();
  var note='✅ اتسجل!';
  try{if(!localStorage.getItem('k_gemini')&&!localStorage.getItem('k_groq')){
   note='✅ اتسجل للجلسة دي. ملحوظة: موبايلك مش بيحفظ المفاتيح بعد قفل الصفحة، فلو قفلتها هتحط المفتاح تاني بس.';
@@ -218,8 +280,60 @@ function addImgMsg(dataUrl,caption){
  chat.appendChild(d);
  chat.scrollTop=chat.scrollHeight;
 }
-function setMsg(d,text,who){
- d.textContent=text;
+function makeEditBtn(entry){
+ var b=document.createElement('button');
+ b.className='icobtn editbtn';
+ b.textContent='✏️ عدّل البوست';
+ b.onclick=function(){startEdit(entry,b.parentNode);};
+ return b;
+}
+function renderEdited(d,text,entry,who){
+ d.innerHTML='';
+ var t=document.createElement('span');
+ t.textContent=text;
+ d.appendChild(t);
+ if(who){
+  var s=document.createElement('div');
+  s.className='who';
+  s.textContent=who;
+  d.appendChild(s);
+ }
+ d.appendChild(makeEditBtn(entry));
+ chat.scrollTop=chat.scrollHeight;
+}
+function startEdit(entry,d){
+ d.innerHTML='';
+ var ta=document.createElement('textarea');
+ ta.className='editarea';
+ ta.value=entry.content;
+ var row=document.createElement('div');
+ row.className='editrow';
+ var sv=document.createElement('button');
+ sv.textContent='حفظ 💾';
+ sv.onclick=function(){
+  var v=ta.value.trim();
+  if(v&&v!==entry.content){
+   pushEdit(entry.content,v);
+   entry.content=v;
+   saveMsgs();
+  }
+  renderEdited(d,v||entry.content,entry,'معدّل بإيدك ✏️');
+ };
+ var cn=document.createElement('button');
+ cn.className='icobtn';
+ cn.textContent='إلغاء';
+ cn.onclick=function(){renderEdited(d,entry.content,entry,null);};
+ row.appendChild(sv);
+ row.appendChild(cn);
+ d.appendChild(ta);
+ d.appendChild(row);
+}
+function setMsg(d,text,who,entry){
+ if(entry){renderEdited(d,text,entry,who);return;}
+ d.innerHTML='';
+ var t=document.createElement('span');
+ t.textContent=text;
+ d.appendChild(t);
  if(who){
   var s=document.createElement('div');
   s.className='who';
@@ -228,11 +342,48 @@ function setMsg(d,text,who){
  }
  chat.scrollTop=chat.scrollHeight;
 }
-async function ask(img){
+function visionList(img){
  var list=P;
- if(img){
-  list=P.filter(function(p){return p.vision;});
-  if(!list.length){return [null,'❌ قراءة الصور محتاجة مفتاح Gemini (أو تفعيل كلود من ⚙️). حط المفتاح من الإعدادات وجرب تاني.'];}
+ if(img){list=P.filter(function(p){return p.vision;});}
+ return list;
+}
+async function teamAsk(img,list){
+ if(list.length<2)return null;
+ var lastUser='';
+ for(var i=msgs.length-1;i>=0;i--){if(msgs[i].role==='user'){lastUser=msgs[i].content;break;}}
+ var used=[];
+ var names=[];
+ async function step(mk){
+  for(var j=0;j<list.length;j++){
+   if(used.indexOf(j)>=0)continue;
+   try{
+    var r=await list[j].call(img,mk?mk():undefined);
+    used.push(j);
+    names.push(list[j].name);
+    return r;
+   }catch(e){}
+  }
+  return null;
+ }
+ var draft=await step(null);
+ if(!draft)return null;
+ var reviewed=await step(function(){return [{role:'user',content:'طلب محمود الأصلي:\n'+lastUser+'\n\nوده مسودة رد من زميلك:\n'+draft+'\n\nراجع المسودة وحسّنها: التزم بقواعد ستايل محمود بالظبط، اتأكد من الخامة وترتيب البوستين والهاشتاجات والستوري، وخلي الكلام مصري ومختصر. اكتب النسخة المحسنة بس، من غير مقدمات أو تعليقات.'}];});
+ var base=reviewed||draft;
+ var fin=await step(function(){return [{role:'user',content:'طلب محمود الأصلي:\n'+lastUser+'\n\nوده '+(reviewed?'مسودة بعد مراجعة':'مسودة')+' من زميلك:\n'+base+'\n\nطلّع النسخة النهائية الجاهزة للنسخ على طول بأسلوب محمود المضبوط، من غير أي مقدمات أو تعليقات أو ملاحظات.'}];});
+ return ['فريق 🤝 '+names.join(' ← '),fin||base];
+}
+async function ask(img){
+ var list=visionList(img);
+ if(img&&!list.length){return [null,'❌ قراءة الصور محتاجة مفتاح Gemini (أو تفعيل كلود من ⚙️). حط المفتاح من الإعدادات وجرب تاني.'];}
+ if(teamOn()&&list.length>1){
+  try{
+   var t=await teamAsk(img,list);
+   if(t){
+    msgs.push({role:'assistant',content:t[1]});
+    saveMsgs();
+    return t;
+   }
+  }catch(e){}
  }
  var errs=[];
  for(var i=0;i<list.length;i++){
@@ -279,6 +430,14 @@ function downscaleFile(file,max){
   img.src=url;
  });
 }
+function dataUrlToFile(d){
+ try{
+  var bin=atob(d.split(',')[1]);
+  var u=new Uint8Array(bin.length);
+  for(var i=0;i<bin.length;i++){u[i]=bin.charCodeAt(i);}
+  return new File([u],'product.jpg',{type:'image/jpeg'});
+ }catch(e){return null;}
+}
 function pickImg(){document.getElementById('filein').click();}
 async function onImg(ev){
  var f=ev.target.files&&ev.target.files[0];
@@ -293,6 +452,99 @@ async function onImg(ev){
  }
 }
 function clearPreview(){pendingImg=null;document.getElementById('pvbar').style.display='none';}
+
+/* ===== مكتبة المنتجات ===== */
+function getProducts(){
+ try{var a=JSON.parse(storeGet('k_products')||'[]');return Array.isArray(a)?a:[];}catch(e){return[];}
+}
+function setProducts(a){storeSet('k_products',JSON.stringify(a));}
+var prodImg=null;
+function showPanel(){
+ document.getElementById('panel').style.display='flex';
+ document.getElementById('setup').style.display='none';
+ chat.style.display='none';
+ renderProducts();
+}
+function pickProdImg(){document.getElementById('pfile').click();}
+async function onProdImg(ev){
+ var f=ev.target.files&&ev.target.files[0];
+ ev.target.value='';
+ if(!f)return;
+ try{
+  prodImg=await downscaleFile(f,512);
+  var th=document.getElementById('pthumb');
+  th.src=prodImg.dataUrl;
+  th.style.display='block';
+ }catch(e){
+  alert('الصورة دي مش راضية تتقري، جرب تانية');
+ }
+}
+function saveProduct(){
+ var n=document.getElementById('p_name').value.trim();
+ var pr=document.getElementById('p_price').value.trim();
+ if(!prodImg||!n||!pr){alert('كمّل الصورة والاسم والسعر الأول 😊');return;}
+ var ps=getProducts();
+ if(ps.length>=30){alert('وصلت للحد الأقصى (٣٠ منتج). امسح منتجات قديمة الأول 🗑️');return;}
+ ps.unshift({id:Date.now(),name:n,price:pr,img:prodImg.dataUrl});
+ setProducts(ps);
+ prodImg=null;
+ document.getElementById('pthumb').style.display='none';
+ document.getElementById('p_name').value='';
+ document.getElementById('p_price').value='';
+ renderProducts();
+}
+function delProduct(id){
+ if(!confirm('تمسح المنتج ده من المكتبة؟'))return;
+ setProducts(getProducts().filter(function(p){return p.id!==id;}));
+ renderProducts();
+}
+function useProduct(id){
+ var p=null;
+ getProducts().forEach(function(x){if(x.id===id)p=x;});
+ if(!p)return;
+ pendingImg={dataUrl:p.img,b64:p.img.split(',')[1],mime:'image/jpeg',file:dataUrlToFile(p.img)};
+ document.getElementById('pvimg').src=p.img;
+ document.getElementById('pvbar').style.display='flex';
+ document.getElementById('in').value=p.price;
+ hidePanels();
+ document.getElementById('in').focus();
+}
+function renderProducts(){
+ var el=document.getElementById('plist');
+ el.innerHTML='';
+ var ps=getProducts();
+ if(!ps.length){
+  var em=document.createElement('div');
+  em.className='lbl';
+  em.textContent='مفيش منتجات محفوظة لسه. ضيف أول منتج من تحت 👇';
+  el.appendChild(em);
+  return;
+ }
+ ps.forEach(function(p){
+  var r=document.createElement('div');
+  r.className='prow';
+  var im=document.createElement('img');
+  im.src=p.img;
+  im.className='pimg';
+  var nm=document.createElement('div');
+  nm.className='pname';
+  nm.textContent=p.name+' — '+p.price+' ج';
+  var use=document.createElement('button');
+  use.className='icobtn';
+  use.textContent='✨';
+  use.title='اعمله بوست';
+  use.onclick=function(){useProduct(p.id);};
+  var del=document.createElement('button');
+  del.className='icobtn';
+  del.textContent='🗑️';
+  del.onclick=function(){delProduct(p.id);};
+  r.appendChild(im);
+  r.appendChild(nm);
+  r.appendChild(use);
+  r.appendChild(del);
+  el.appendChild(r);
+ });
+}
 
 /* ===== استخراج السعر والصورة الجاهزة ===== */
 function extractPrice(t){
@@ -446,7 +698,9 @@ async function send(){
  saveMsgs();
  var w=add('⏳ بيفكر...','ai');
  var res=await ask(imgForSend);
- setMsg(w,res[1],res[0]);
+ var entry=null;
+ if(res[0]&&msgs.length&&msgs[msgs.length-1].role==='assistant'){entry=msgs[msgs.length-1];}
+ setMsg(w,res[1],res[0],entry);
  if(imgForSend&&res[0]){
   tryOverlay(imgForSend.dataUrl,extractPrice(priceSrc));
  }
