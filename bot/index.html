@@ -53,12 +53,16 @@ function add(text,cls){
 function linkify(t,text){
  text.split(/(https?:\/\/[^\s]+|wa\.me\/[0-9]+)/g).forEach(function(part){
   if(/^(https?:\/\/|wa\.me\/)/.test(part)){
+   var url=part,tail='';
+   var m=part.match(/^(.*?)([.,!;؟،)\]]+)$/);
+   if(m){url=m[1];tail=m[2];}
    var a=document.createElement('a');
-   a.href=part.indexOf('http')===0?part:('https://'+part);
+   a.href=url.indexOf('http')===0?url:('https://'+url);
    a.target='_blank';
    a.rel='noopener';
-   a.textContent=part;
+   a.textContent=url;
    t.appendChild(a);
+   if(tail)t.appendChild(document.createTextNode(tail));
   }else if(part){
    t.appendChild(document.createTextNode(part));
   }
