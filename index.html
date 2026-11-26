@@ -65,7 +65,7 @@ button{padding:12px 16px;border:none;border-radius:20px;background:#1f6feb;color
 <input id="p_name" placeholder="اسم المنتج (مثال: خاتم فصوص روز)">
 <input id="p_price" placeholder="السعر بالجنيه (مثال: 150)" inputmode="numeric">
 <button onclick="saveProduct()">حفظ المنتج 💾</button>
-<button class="icobtn" onclick="syncCatalog()">🔄 حدّث كتالوج البوت دلوقتي</button>
+<button class="icobtn" onclick="syncNow()">🔄 حدّث كتالوج البوت دلوقتي</button>
 <div class="lbl" id="syncst"></div>
 <button class="icobtn" onclick="hidePanels()">رجوع للشات ⬅️</button>
 </div>
@@ -254,6 +254,7 @@ function saveKeys(){
 }
 rebuild();
 loadMsgs();
+mergeCatalog();
 if(!P.length){showSetup();}
 function add(text,cls,who){
  var d=document.createElement('div');
@@ -444,6 +445,21 @@ function dataUrlToFile(d){
   return new File([u],'product.jpg',{type:'image/jpeg'});
  }catch(e){return null;}
 }
+async function urlToDataUrl(u){
+ var r=await fetch(u);
+ if(!r.ok)throw {msg:'fetch failed'};
+ var b=await r.blob();
+ return await new Promise(function(res,rej){
+  var fr=new FileReader();
+  fr.onload=function(){res(fr.result);};
+  fr.onerror=function(){rej({msg:'read failed'});};
+  fr.readAsDataURL(b);
+ });
+}
+async function urlToB64(u){
+ var d=await urlToDataUrl(u);
+ return d.split(',')[1];
+}
 function pickImg(){document.getElementById('filein').click();}
 async function onImg(ev){
  var f=ev.target.files&&ev.target.files[0];
@@ -506,11 +522,15 @@ function delProduct(id){
  renderProducts();
  syncCatalog();
 }
-function useProduct(id){
+async function useProduct(id){
  var p=null;
  getProducts().forEach(function(x){if(x.id===id)p=x;});
  if(!p)return;
- pendingImg={dataUrl:p.img,b64:p.img.split(',')[1],mime:'image/jpeg',file:dataUrlToFile(p.img)};
+ var durl=p.img;
+ if(durl.indexOf('data:')!==0){
+  try{durl=await urlToDataUrl(p.img);}catch(e){alert('الصورة مش راضية تتحمل من النت، جرب تاني 📶');return;}
+ }
+ pendingImg={dataUrl:durl,b64:durl.split(',')[1],mime:'image/jpeg',file:dataUrlToFile(durl)};
  document.getElementById('pvimg').src=p.img;
  document.getElementById('pvbar').style.display='flex';
  document.getElementById('in').value=p.price;
@@ -574,6 +594,34 @@ async function ghPut(path,contentB64,msg){
  if(cur&&cur.sha)body.sha=cur.sha;
  await ghApi(path,'PUT',body);
 }
+/* ===== دمج منتجات الكتالوج في المكتبة (يعني أي منتج اتضاف من بره التطبيق) ===== */
+var CAT_JSON_URL='https://kimoelkot7-art.github.io/ml-assistant/bot/catalog.json';
+var CAT_IMG_BASE='https://kimoelkot7-art.github.io/ml-assistant/bot/catalog/';
+async function mergeCatalog(){
+ try{
+  var r=await fetch(CAT_JSON_URL,{cache:'no-store'});
+  if(!r.ok)return 0;
+  var d=await r.json();
+  if(!d||!Array.isArray(d.products))return 0;
+  var ps=getProducts();
+  var have={};
+  ps.forEach(function(p){have['p'+p.id]=1;});
+  var added=0;
+  d.products.forEach(function(c){
+   if(!c.id||have[c.id])return;
+   have[c.id]=1;
+   ps.push({id:c.id.replace(/^p/,''),name:c.name||'',price:String(c.price==null?'':c.price),img:CAT_IMG_BASE+c.id+'.jpg',remote:true});
+   added++;
+  });
+  if(added){setProducts(ps);renderProducts();}
+  return added;
+ }catch(e){return 0;}
+}
+async function syncNow(){
+ var a=await mergeCatalog();
+ if(a){syncStatus('📥 اتضاف '+a+' منتج من الكتالوج للمكتبة');}
+ syncCatalog();
+}
 async function syncCatalog(){
  if(_syncing){_syncAgain=true;return;}
  if(!ghToken()){syncStatus('⚠️ ضيف توكن GitHub من ⚙️ الأول عشان كتالوج البوت يتحدث');return;}
@@ -589,7 +637,12 @@ async function syncCatalog(){
    var p=ps[i];
    var path='bot/catalog/p'+p.id+'.jpg';
    keep[path]=1;
-   if(!have[path]){await ghPut(path,p.img.split(',')[1],'catalog: add product image '+p.id);}
+   if(!have[path]){
+    var b64=null;
+    if(p.img.indexOf('data:')===0){b64=p.img.split(',')[1];}
+    else{try{b64=await urlToB64(p.img);}catch(e){}}
+    if(b64){await ghPut(path,b64,'catalog: add product image '+p.id);}
+   }
   }
   var names=Object.keys(have);
   for(i=0;i<names.length;i++){
