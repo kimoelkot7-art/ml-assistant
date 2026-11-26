@@ -33,7 +33,7 @@ button{padding:12px 16px;border:none;border-radius:20px;background:#1f6feb;color
 .prow button{padding:8px 10px;font-size:15px}
 .pimg{width:52px;height:52px;object-fit:cover;border-radius:8px}
 .pname{flex:1;font-size:14px;line-height:1.5}
-#pthumb{display:none;height:52px;border-radius:8px}
+#pthumbs{display:flex;gap:6px;flex-wrap:wrap} #pthumbs img{height:52px;border-radius:8px}
 .editbtn{padding:4px 10px;font-size:13px;margin-top:8px}
 .editarea{width:100%;min-height:160px;box-sizing:border-box;background:#0d1117;color:#e6edf3;border:1px solid #30363d;border-radius:10px;padding:8px;font-size:14px;font-family:inherit;line-height:1.6}
 .editrow{display:flex;gap:6px;margin-top:6px}
@@ -59,8 +59,8 @@ button{padding:12px 16px;border:none;border-radius:20px;background:#1f6feb;color
 <div id="plist"></div>
 <div class="lbl" style="color:#e6edf3;font-weight:bold">➕ إضافة منتج جديد</div>
 <div style="display:flex;align-items:center;gap:10px">
-<img id="pthumb" alt="">
-<button class="icobtn" onclick="pickProdImg()">📷 صورة المنتج</button>
+<div id="pthumbs"></div>
+<button class="icobtn" onclick="pickProdImg()">📷 صور المنتج (تقدر تختار كذا صورة مع بعض)</button>
 </div>
 <input id="p_name" placeholder="اسم المنتج (مثال: خاتم فصوص روز)">
 <input id="p_price" placeholder="السعر بالجنيه (مثال: 150)" inputmode="numeric">
@@ -78,7 +78,7 @@ button{padding:12px 16px;border:none;border-radius:20px;background:#1f6feb;color
 <button onclick="send()">ابعت</button>
 </div>
 <input type="file" id="filein" accept="image/*" style="display:none" onchange="onImg(event)">
-<input type="file" id="pfile" accept="image/*" style="display:none" onchange="onProdImg(event)">
+<input type="file" id="pfile" accept="image/*" multiple style="display:none" onchange="onProdImg(event)">
 <script>
 var chat=document.getElementById('chat');
 var SYSTEM_PROMPT='انت المساعد الشخصي لمحمود، صاحب براند M&L للإكسسوارات (خواتم، سلاسل، أساور، طقوم كابلز) بيبيع على فيسبوك وواتساب في مصر. بتتكلم معاه بالعامية المصرية زي صاحبه، وبتساعده في شغل البراند: بوستات بيع جاهزة للنسخ واللصق، أفكار تسويق مجانية، ردود على العملاء (الأسعار من ١٠٠ لـ ٣٥٠ جنيه، شحن لكل المحافظات، دفع كاش عند الاستلام، لينك الطلب wa.me/201148434241)، ترجمة إنجليزي لما يطلب، وأفكار أتمتة وAI. خلي ردودك مختصرة وعملية.\n\nولما محمود يبعتلك صورة منتج، اكتب بوستين جاهزين للنسخ: الأول بوست فيسبوك، وبعده خط فاصل واضح زي "===== واتساب ====="، وبعده بوست واتساب.\n\nبوست الفيسبوك (شيك ومحترم جدًا ويلفت العين، بالترتيب ده بالظبط):\n١) سطر هوك شيك يشد العين مع إيموجي.\n٢) تفاصيل القطعة اللي تبيعها من اللي باين في الصورة (مثلًا "ضد تغيير اللون")، ولو كومبو اذكر قطعه.\n٣) سطر الخامة لوحده بالصيغة دي بالظبط: "Stainless Steel pure" أو "Gold Plated"، ولو كومبو مخلوط سطر خامة لكل قطعة.\n٤) سطر السعر بالصيغة دي: "السعر: ١٥٠ ج بس 💸" أو للكومبو "سعر الكومبو بالكامل: ٢٥٠ ج بس 💸" وبعدها "عروض وايت فرايداي ⏰🔥".\n٥) سطر الطلب باللينك wa.me/201148434241.\n\nبوست الواتساب (قصير ٣-٤ سطور بالإيموجيز بأسلوب محمود نفسه):\n١) هوك فيه اسم القطعة وحماس زي "موووت 😍✨".\n٢) سطر الخامة بالصيغ دي بالظبط: "Gold Plated (جولد بليتد) ✨" أو "Stainless Steel pure 🔥🔥💫" أو "Necklace drops 🔥🔥💫".\n٣) سطر السعر زي "السعر ١٥٠ فقط عروض جمعه 🔥💸⏰" أو للكومبو "سعر الكومبو بالكامل ٢٢٥ بس عروض الجمعة 🔥💸⏰".\n\nقواعد الخامة: القطعة اللي فيها فصوص كتير غالبًا Gold Plated. السادة من غير فصوص Stainless Steel pure مهما كان لونها. السلسلة اللي عليها دلاية اسمها "Necklace drops". الخواتم Gold Plated. ولو مش متأكد من الخامة اسأله ومتخمنش.\n\nومع كل بوست لمنتج، ضيف في الآخر قسمين كمان: "===== هاشتاجات =====" وفيه سطر هاشتاجات جاهزة للنسخ (عربي وإنجليزي، فيها #ML واسم القطعة وكلمات زي #اكسسوارات #خواتم #WhiteFriday)، و"===== ستوري =====" وفيه كابشن ستوري قصير سطر أو سطرين حماسي مع السعر ولينك الطلب.\n\nولو محمود بعتلك مسودة بوست من كتابته هو، حسّنها بس خلي صوته وسطوره زي ما هي.\nولو مكتبش السعر مع الصورة، اسأله عن السعر في سطر واحد ومتكتبش البوستين، وماتخترعش سعر من عندك أبدًا.';
@@ -480,7 +480,7 @@ function getProducts(){
  try{var a=JSON.parse(storeGet('k_products')||'[]');return Array.isArray(a)?a:[];}catch(e){return[];}
 }
 function setProducts(a){storeSet('k_products',JSON.stringify(a));}
-var prodImg=null;
+var prodImgs=[];
 function showPanel(){
  document.getElementById('panel').style.display='flex';
  document.getElementById('setup').style.display='none';
@@ -488,38 +488,51 @@ function showPanel(){
  renderProducts();
 }
 function pickProdImg(){document.getElementById('pfile').click();}
+function renderProdThumbs(){
+ var box=document.getElementById('pthumbs');
+ box.innerHTML='';
+ prodImgs.forEach(function(p){
+  var im=document.createElement('img');
+  im.src=p.dataUrl;
+  box.appendChild(im);
+ });
+}
 async function onProdImg(ev){
- var f=ev.target.files&&ev.target.files[0];
+ var fs=ev.target.files?Array.prototype.slice.call(ev.target.files):[];
  ev.target.value='';
- if(!f)return;
- try{
-  prodImg=await downscaleFile(f,512);
-  var th=document.getElementById('pthumb');
-  th.src=prodImg.dataUrl;
-  th.style.display='block';
- }catch(e){
-  alert('الصورة دي مش راضية تتقري، جرب تانية');
+ if(!fs.length)return;
+ for(var i=0;i<fs.length;i++){
+  try{
+   prodImgs.push(await downscaleFile(fs[i],512));
+  }catch(e){
+   alert('واحدة من الصور مش راضية تتقري، جربها تانية');
+  }
  }
+ renderProdThumbs();
 }
 function saveProduct(){
  var n=document.getElementById('p_name').value.trim();
  var pr=document.getElementById('p_price').value.trim();
- if(!prodImg||!n||!pr){alert('كمّل الصورة والاسم والسعر الأول 😊');return;}
+ if(!prodImgs.length||!n||!pr){alert('كمّل الصور والاسم والسعر الأول 😊');return;}
  var ps=getProducts();
  var photoCount=ps.filter(function(p){return !p.remote;}).length;
- if(photoCount>=50){alert('وصلت للحد الأقصى (٥٠ منتج). امسح منتجات قديمة الأول 🗑️');return;}
- ps.unshift({id:Date.now(),name:n,price:pr,img:prodImg.dataUrl});
+ if(photoCount+prodImgs.length>50){alert('الصور دي هتعدّي الحد الأقصى (٥٠ صورة). فاضل '+(50-photoCount)+' بس، قلّل الصور أو امسح منتجات قديمة 🗑️');return;}
+ var t=Date.now();
+ for(var i=0;i<prodImgs.length;i++){
+  ps.unshift({id:t+i,name:n,price:pr,img:prodImgs[i].dataUrl});
+ }
  setProducts(ps);
- prodImg=null;
- document.getElementById('pthumb').style.display='none';
+ prodImgs=[];
+ renderProdThumbs();
  document.getElementById('p_name').value='';
  document.getElementById('p_price').value='';
  renderProducts();
  syncCatalog();
 }
-function delProduct(id){
- if(!confirm('تمسح المنتج ده من المكتبة؟'))return;
- setProducts(getProducts().filter(function(p){return p.id!==id;}));
+function delProducts(ids){
+ var msg=ids.length>1?('تمسح المنتج ده بكل صوره ('+ids.length+' صور) من المكتبة؟'):'تمسح المنتج ده من المكتبة؟';
+ if(!confirm(msg))return;
+ setProducts(getProducts().filter(function(p){return ids.indexOf(p.id)<0;}));
  renderProducts();
  syncCatalog();
 }
@@ -549,7 +562,15 @@ function renderProducts(){
   el.appendChild(em);
   return;
  }
+ var groups=[];
+ var gmap={};
  ps.forEach(function(p){
+  var k=p.name+'|'+p.price;
+  if(!gmap[k]){gmap[k]=[];groups.push(gmap[k]);}
+  gmap[k].push(p);
+ });
+ groups.forEach(function(g){
+  var p=g[0];
   var r=document.createElement('div');
   r.className='prow';
   var im=document.createElement('img');
@@ -557,7 +578,7 @@ function renderProducts(){
   im.className='pimg';
   var nm=document.createElement('div');
   nm.className='pname';
-  nm.textContent=p.name+' — '+p.price+' ج';
+  nm.textContent=p.name+' — '+p.price+' ج'+(g.length>1?('  📷×'+g.length):'');
   var use=document.createElement('button');
   use.className='icobtn';
   use.textContent='✨';
@@ -566,7 +587,8 @@ function renderProducts(){
   var del=document.createElement('button');
   del.className='icobtn';
   del.textContent='🗑️';
-  del.onclick=function(){delProduct(p.id);};
+  var ids=g.map(function(x){return x.id;});
+  del.onclick=function(){delProducts(ids);};
   r.appendChild(im);
   r.appendChild(nm);
   r.appendChild(use);
