@@ -506,7 +506,8 @@ function saveProduct(){
  var pr=document.getElementById('p_price').value.trim();
  if(!prodImg||!n||!pr){alert('كمّل الصورة والاسم والسعر الأول 😊');return;}
  var ps=getProducts();
- if(ps.length>=30){alert('وصلت للحد الأقصى (٣٠ منتج). امسح منتجات قديمة الأول 🗑️');return;}
+ var photoCount=ps.filter(function(p){return !p.remote;}).length;
+ if(photoCount>=50){alert('وصلت للحد الأقصى (٥٠ منتج). امسح منتجات قديمة الأول 🗑️');return;}
  ps.unshift({id:Date.now(),name:n,price:pr,img:prodImg.dataUrl});
  setProducts(ps);
  prodImg=null;
